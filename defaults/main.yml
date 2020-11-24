@@ -1,0 +1,6 @@
+aipscan_install_dir: "/usr/share/archivematica/AIPscan"
+aipscan_virtualenv: "/usr/share/archivematica/virtualenvs/AIPscan"
+aipscan_branch: "main"
+aipscan_user: "archivematica"
+aipscan_group: "archivematica"
+aipscan_listen_port: "8057"

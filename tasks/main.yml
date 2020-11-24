@@ -1,0 +1,53 @@
+- name: "Download code"
+  git:
+    repo: "https://github.com/artefactual-labs/AIPscan"
+    dest: "{{ aipscan_install_dir }}"
+    version: "{{ aipscan_branch }}"
+- name: "Update permissions for downloaded code"
+  file:
+    dest: "{{ aipscan_install_dir }}"
+    owner: "{{ aipscan_user }}"
+    group: "{{ aipscan_group }}"
+    recurse: "yes"
+- name: "Install pip dependencies in virtualenv"
+  pip:
+    chdir: "{{ aipscan_install_dir }}"
+    requirements: "requirements.txt"
+    virtualenv: "{{ aipscan_virtualenv }}"
+    virtualenv_command: /usr/bin/python3 -m venv
+    state: "latest"
+- name: "Template systemd files"
+  template: 
+    src: "systemd/{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+  with_items:
+    - celery.service
+    - AIPscan.service
+
+- name: "Create Nginx config file"
+  template:
+    src: "{{ item }}"
+    dest: /etc/nginx/sites-available/aipscan.conf
+  with_first_found:
+    - "templates/{{ inventory_hostname }}/nginx/aipscan.conf.j2"
+    - "templates/nginx/aipscan.conf.j2"
+    - "templates/nginx/sites-available/aipscan.conf.j2"
+
+- name: "Enable Nginx config"
+  file:
+    src: "/etc/nginx/sites-available/aipscan.conf"
+    dest: "/etc/nginx/sites-enabled/aipscan.conf"
+    state: "link"
+
+- name: "Enable services"
+  systemd:
+    name: "{{ item }}"
+    state: "restarted"
+    enabled: "yes"
+    daemon_reload: "yes"
+  with_items:
+    - "celery"
+    - "AIPscan"
+    - "nginx"
+
+

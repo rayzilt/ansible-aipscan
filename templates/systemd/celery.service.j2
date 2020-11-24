@@ -1,0 +1,19 @@
+[Unit]
+Description=Celery worker service for AIPscan
+After=network.target
+
+[Service]
+User={{ aipscan_user }}
+
+WorkingDirectory={{ aipscan_install_dir }}
+ExecStart={{ aipscan_virtualenv }}/bin/celery worker -A AIPscan.worker.celery --loglevel=info
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+Restart=always
+RestartSec=30
+
+
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Gunicorn instance to serve AIPscan
+After=network.target
+
+[Service]
+User={{ aipscan_user }}
+Group={{ aipscan_group }}
+WorkingDirectory={{ aipscan_install_dir }}
+ExecStart={{ aipscan_virtualenv }}/bin/gunicorn --workers 3 --bind localhost:4573 "AIPscan:create_app()"
+
+[Install]
+WantedBy=multi-user.target

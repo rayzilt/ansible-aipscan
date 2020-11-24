@@ -1,0 +1,11 @@
+- src: "https://github.com/artefactual-labs/ansible-role-rabbitmq"
+  name: artefactual.rabbitmq
+
+- src: "https://github.com/artefactual-labs/ansible-nginx"
+  branch: "master"
+  name: "artefactual.nginx"
+
+- src: "https://github.com/artefactual-labs/ansible-aipscan"
+  branch: "master"
+  name: "artefactual.aipscan"
+
