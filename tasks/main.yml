@@ -1,8 +1,12 @@
-- name: "Ensure python3-venv is installed"
+- name: "Ensure python3-venv is installed (Ubuntu)"
   apt:
     name: "python3-venv"
     state: "present"
   when: ansible_os_family == 'Debian'
+- name: "Ensure python-passlib is installed"
+  package:
+    name: "python-passlib"
+    state: "present"
 
 - name: "Download code"
   git:
