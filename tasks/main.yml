@@ -30,6 +30,15 @@
     - celery.service
     - AIPscan.service
 
+- name: "Create htpasswd file"
+  htpasswd:
+    path: "/etc/nginx/auth_basic/htpasswd.aipscan"
+    name: "{{ aipscan_http_user }}"
+    password: "{{ aipscan_http_password }}"
+    owner: "root"
+    mode: "0644"
+  when: aipscan_http_user is defined
+
 - name: "Create Nginx config file"
   template:
     src: "{{ item }}"
