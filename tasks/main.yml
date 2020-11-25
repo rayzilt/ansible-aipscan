@@ -1,3 +1,9 @@
+- name: "Ensure python3-venv is installed"
+  apt:
+    name: "python3-venv"
+    state: "present"
+  when: ansible_os_family == 'Debian'
+
 - name: "Download code"
   git:
     repo: "https://github.com/artefactual-labs/AIPscan"
