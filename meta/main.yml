@@ -12,8 +12,3 @@ galaxy_info:
      versions:
      - bionic
 
-dependencies:
-   - role: artefactual.nginx
-   - role: artefactual.rabbitmq
-     rabbitmq_version: "3.6.16"
-     rabbitmq_enabled: true
