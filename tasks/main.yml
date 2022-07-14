@@ -8,6 +8,15 @@
     name: "python-passlib"
     state: "present"
 
+- name: "Get git config global safe directories dir"
+  shell: "git config --global --get-all safe.directory || echo ''"
+  register: "__git_config_global_safe_dir"
+
+- name: "Set site directory as git safe dir"
+  command: "git config --global --add safe.directory {{ aipscan_install_dir | trim | regex_replace('\\/$', '') }}"
+  when:
+    -  aipscan_install_dir | trim() | regex_replace('\\/$', '') not in __git_config_global_safe_dir
+
 - name: "Download code"
   git:
     repo: "https://github.com/artefactual-labs/AIPscan"
