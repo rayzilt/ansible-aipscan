@@ -1,11 +1,22 @@
-- name: "Ensure python3-venv is installed (Ubuntu)"
+- name: "Ensure python3-venv and python3-dev are installed (Ubuntu)"
   apt:
-    name: "python3-venv"
+    name: 
+      - "python3-venv"
+      - "python3-dev"
     state: "present"
   when: ansible_os_family == 'Debian'
-- name: "Ensure python-passlib is installed"
+
+- name: "Ensure rabbitmq-server and erlang are installed (Ubuntu)"
+  apt:
+    name:
+      - rabbitmq-server
+      - erlang
+    state: "present"
+  when: ansible_os_family == 'Debian'
+
+- name: "Ensure python3-passlib is installed"
   package:
-    name: "python-passlib"
+    name: "python3-passlib"
     state: "present"
 
 - name: "Get git config global safe directories dir"
@@ -22,12 +33,14 @@
     repo: "https://github.com/artefactual-labs/AIPscan"
     dest: "{{ aipscan_install_dir }}"
     version: "{{ aipscan_branch }}"
+
 - name: "Update permissions for downloaded code"
   file:
     dest: "{{ aipscan_install_dir }}"
     owner: "{{ aipscan_user }}"
     group: "{{ aipscan_group }}"
     recurse: "yes"
+
 - name: "Install pip dependencies in virtualenv"
   pip:
     chdir: "{{ aipscan_install_dir }}"
@@ -35,6 +48,7 @@
     virtualenv: "{{ aipscan_virtualenv }}"
     virtualenv_command: /usr/bin/python3 -m venv
     state: "latest"
+
 - name: "Template systemd files"
   template: 
     src: "systemd/{{ item }}.j2"
@@ -77,5 +91,3 @@
     - "celery"
     - "AIPscan"
     - "nginx"
-
-
