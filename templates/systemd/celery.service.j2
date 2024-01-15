@@ -7,7 +7,7 @@ User={{ aipscan_user }}
 
 WorkingDirectory={{ aipscan_install_dir }}
 {% if  aipscan_db_user is defined %}
-Environment="SQLALCHEMY_DATABASE_URI=mysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}"
+Environment="SQLALCHEMY_DATABASE_URI=mysql+pymysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}"
 {% endif %}
 ExecStart={{ aipscan_virtualenv }}/bin/celery -A AIPscan.worker.celery worker --loglevel=info
 ExecReload=/bin/kill -s HUP $MAINPID
