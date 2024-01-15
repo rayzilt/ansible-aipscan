@@ -6,7 +6,7 @@ After=network.target
 User={{ aipscan_user }}
 
 WorkingDirectory={{ aipscan_install_dir }}
-ExecStart={{ aipscan_virtualenv }}/bin/celery worker -A AIPscan.worker.celery --loglevel=info
+ExecStart={{ aipscan_virtualenv }}/bin/celery -A AIPscan.worker.celery worker --loglevel=info
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 PrivateTmp=true
