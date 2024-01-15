@@ -49,6 +49,11 @@
     virtualenv_command: /usr/bin/python3 -m venv
     state: "latest"
 
+- name: "Build js dependencies"
+  command:
+    chdir: "{{ aipscan_install_dir }}"
+    cmd: "make build"
+
 - name: "Template systemd files"
   template: 
     src: "systemd/{{ item }}.j2"
