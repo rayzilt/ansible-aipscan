@@ -62,30 +62,6 @@
     - celery.service
     - AIPscan.service
 
-- name: "Create htpasswd file"
-  htpasswd:
-    path: "/etc/nginx/auth_basic/htpasswd.aipscan"
-    name: "{{ aipscan_http_user }}"
-    password: "{{ aipscan_http_password }}"
-    owner: "root"
-    mode: "0644"
-  when: aipscan_http_user is defined
-
-- name: "Create Nginx config file"
-  template:
-    src: "{{ item }}"
-    dest: /etc/nginx/sites-available/aipscan.conf
-  with_first_found:
-    - "templates/{{ inventory_hostname }}/nginx/aipscan.conf.j2"
-    - "templates/nginx/aipscan.conf.j2"
-    - "templates/nginx/sites-available/aipscan.conf.j2"
-
-- name: "Enable Nginx config"
-  file:
-    src: "/etc/nginx/sites-available/aipscan.conf"
-    dest: "/etc/nginx/sites-enabled/aipscan.conf"
-    state: "link"
-
 - name: "Enable services"
   systemd:
     name: "{{ item }}"
@@ -95,4 +71,3 @@
   with_items:
     - "celery"
     - "AIPscan"
-    - "nginx"
