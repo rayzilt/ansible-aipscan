@@ -54,6 +54,13 @@
     chdir: "{{ aipscan_install_dir }}"
     cmd: "make build"
 
+- name: "Template configuration file"
+  template:
+    src: "sysconfig/AIPscan.j2"
+    dest: "{{ systemd_environment_path }}/AIPscan"
+    owner: "{{ aipscan_user }}"
+    group: "{{ aipscan_group }}"
+
 - name: "Template systemd files"
   template: 
     src: "systemd/{{ item }}.j2"
