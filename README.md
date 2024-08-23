@@ -2,24 +2,6 @@
 
 Ansible role for deploying [AIPScan](https://github.com/artefactual-labs/AIPScan)
 
-- It requires Artefactual's Nginx and Rabbit MQ roles, based on the excelent work from [@geerlingguy](https://github.com/geerlingguy). Add this to your requirements.yml file:
-
-
-```
-- src: "https://github.com/artefactual-labs/ansible-role-rabbitmq"
-  branch: "master"
-  name: artefactual.rabbitmq
-  
-- src: "https://github.com/artefactual-labs/ansible-nginx"
-  branch: "master"
-  name: "artefactual.nginx"
-
-- src: "https://github.com/artefactual-labs/ansible-aipscan"
-  branch: "main"
-  name: "artefactual.aipscan"
-
-```
-
 - Sample playbook, intended to be used against an already installed Archivematica instance:
 
 ```
@@ -52,7 +34,7 @@ Ansible role for deploying [AIPScan](https://github.com/artefactual-labs/AIPScan
             - "{{ aipscan_http_user }}:{{ aipscan_http_password | default('pass') | string | password_hash('md5_crypt') }}"
       tags:
         - "nginx"
-    - artefactual.rabbitmq
+
     - artefactual.aipscan
 ```
 
@@ -67,6 +49,4 @@ aipscan_branch: "main"
 aipscan_user: "archivematica"
 aipscan_group: "archivematica"
 aipscan_listen_port: "8057"
-aipscan_http_user: "aipscan"
-aipscan_http_password: "artefactual"
 ```
