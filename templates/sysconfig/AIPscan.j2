@@ -1,0 +1,6 @@
+{% if  aipscan_db_user is defined %}
+SQLALCHEMY_DATABASE_URI=mysql+pymysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}
+{% endif %}
+{% if  aipscan_typesense_api_key is defined %}
+TYPESENSE_API_KEY={{ aipscan_typesense_api_key }}
+{% endif %}

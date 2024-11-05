@@ -49,6 +49,18 @@
     virtualenv_command: /usr/bin/python3 -m venv
     state: "latest"
 
+- name: "Build js dependencies"
+  command:
+    chdir: "{{ aipscan_install_dir }}"
+    cmd: "make build"
+
+- name: "Template configuration file"
+  template:
+    src: "sysconfig/AIPscan.j2"
+    dest: "{{ systemd_environment_path }}/AIPscan"
+    owner: "{{ aipscan_user }}"
+    group: "{{ aipscan_group }}"
+
 - name: "Template systemd files"
   template: 
     src: "systemd/{{ item }}.j2"
@@ -56,30 +68,6 @@
   with_items:
     - celery.service
     - AIPscan.service
-
-- name: "Create htpasswd file"
-  htpasswd:
-    path: "/etc/nginx/auth_basic/htpasswd.aipscan"
-    name: "{{ aipscan_http_user }}"
-    password: "{{ aipscan_http_password }}"
-    owner: "root"
-    mode: "0644"
-  when: aipscan_http_user is defined
-
-- name: "Create Nginx config file"
-  template:
-    src: "{{ item }}"
-    dest: /etc/nginx/sites-available/aipscan.conf
-  with_first_found:
-    - "templates/{{ inventory_hostname }}/nginx/aipscan.conf.j2"
-    - "templates/nginx/aipscan.conf.j2"
-    - "templates/nginx/sites-available/aipscan.conf.j2"
-
-- name: "Enable Nginx config"
-  file:
-    src: "/etc/nginx/sites-available/aipscan.conf"
-    dest: "/etc/nginx/sites-enabled/aipscan.conf"
-    state: "link"
 
 - name: "Enable services"
   systemd:
@@ -90,4 +78,3 @@
   with_items:
     - "celery"
     - "AIPscan"
-    - "nginx"
