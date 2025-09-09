@@ -1,0 +1,7 @@
+SQLALCHEMY_DATABASE_URI="mysql+pymysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}"
+SQLALCHEMY_CELERY_BACKEND="mysql+pymysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}"
+CELERY_RESULT_BACKEND="db+mysql+pymysql://{{ celery_db_user }}:{{ celery_db_pass }}@{{ celery_db_host }}/{{ celery_db_name }}"
+CELERY_BROKER_URL={{ aipscan_celery_broker_url | default('amqp://guest@localhost/') }}
+TYPESENSE_HOST={{ aipscan_typesense_host | default('localhost') }}
+TYPESENSE_API_KEY={{ aipscan_typesense_api_key | default('xyz') }}
+CREATE_DB={{ aipscan_create_db | default('true') }}
