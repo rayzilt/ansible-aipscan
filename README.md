@@ -1,67 +1,69 @@
 # ansible-aipscan
 
-Ansible role for deploying [AIPScan].
+Installs [AIPscan] on Linux hosts using Ansible.
+
+## Compatibility
+
+This role targets AIPscan v0.9.0 and newer.
 
 > [!IMPORTANT]
-> For legacy deployments targeting AIPscan v0.7.0 or older, use the [legacy-0.7]
-  tag of this role.
+> For legacy deployments targeting AIPscan v0.8.0 or earlier, use the
+  [legacy-0.7] tag of this role. If you are upgrading and need to migrate an
+  existing SQLite database, see the [migration notes][sqlite-migration].
 
-It requires Artefactual's Nginx and Rabbit MQ roles - add this to your
-`requirements.yml` file:
+## Role variables
 
-```
-- src: "https://github.com/artefactual-labs/ansible-role-rabbitmq"
-  branch: "master"
-  name: artefactual.rabbitmq
+Review [`defaults/main.yml`] for the full list of tunable variables. The file
+includes inline comments for clarity and self-documentation.
 
-- src: "https://github.com/artefactual-labs/ansible-nginx"
-  branch: "master"
-  name: "artefactual.nginx"
+## Dependencies
 
-- src: "https://github.com/artefactual-labs/ansible-aipscan"
-  branch: "main"
-  name: "artefactual.aipscan"
-```
+AIPScan depends on **MySQL** and **RabbitMQ**. In most deployments, **Nginx** is
+used as a load balancer and to serve static files, while **Typesense** can
+optionally be deployed to improve reporting performance.
 
-Sample playbook, intended to be used against an already installed Archivematica
-instance:
+The choice of how to deploy and manage these services is left to the system
+administrator. See [`molecule/default/requirements.yml`] for the supporting
+Ansible roles used in our test pipeline.
 
-```
-- hosts: all
-  become: true
-  vars:
-    aipscan_http_user: "aipscan"
-    aipscan_http_password: "artefactual"
+## Example playbook
+
+Take a look at [`molecule/default/converge.yml`], which we're using in our
+testing pipeline, for a complete example.
+
+Below is a minimal example playbook that installs AIPscan with a single storage
+source:
+
+```yaml
+- hosts: aipscan_server
   roles:
-    - role: "artefactual.nginx"
-      become: "yes"
+    - role: artefactual.aipscan
       vars:
-        nginx_sites:
-          aipscan:
-            - listen 8057
-            - client_max_body_size 256M
-            - satisfy any;
-              auth_basic "Restricted";
-              auth_basic_user_file /etc/nginx/auth_basic/aipscan
-            - location / {
-                proxy_pass http://127.0.0.1:4573;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
-                proxy_set_header Host $http_host;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              }
-        nginx_auth_basic_files:
-          aipscan:
-            - "{{ aipscan_http_user }}:{{ aipscan_http_password | default('pass') | string | password_hash('md5_crypt') }}"
-      tags:
-        - "nginx"
-    - artefactual.rabbitmq
-    - artefactual.aipscan
+        aipscan_secret_key: "secretkeyvalue"
+        aipscan_storage_sources:
+          - name: "Demo Storage Service"
+            url: "http://192.168.1.100:8000"
+            username: "demouser"
+            api_key: "demoapikey"
 ```
 
-AIPscan will be available at port 8057, with user `"aipscan"` and password
-`"artefactual"`.
+## Tags
+
+The role exposes the following tags to run a subset of tasks:
+- `uv` – install or update the uv packaging tool.
+- `install` – create the managed virtual environment and install AIPscan.
+- `database` – run Flask database migrations.
+- `service` – update configuration and manage systemd units.
+
+## License
+
+This project is licensed under the Apache-2.0 license ([LICENSE] or
+<https://opensource.org/licenses/Apache-2.0>).
 
 [AIPscan]: https://github.com/artefactual-labs/AIPScan
 [legacy-0.7]: https://github.com/artefactual-labs/ansible-aipscan/releases/tag/legacy-0.7
+[sqlite-migration]: https://github.com/artefactual-labs/AIPscan/tree/v0.8.0-beta?tab=readme-ov-file#production-deployments
+[LICENSE]: ./LICENSE
+[`molecule/default/requirements.yml`]: ./molecule/default/requirements.yml
+[`molecule/default/converge.yml`]: ./molecule/default/converge.yml
+[`defaults/main.yml`]: ./defaults/main.yml

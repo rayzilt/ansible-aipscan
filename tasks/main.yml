@@ -1,68 +1,98 @@
-- name: "Ensure python3-venv and python3-dev are installed (Ubuntu)"
-  apt:
-    name: 
-      - "python3-venv"
-      - "python3-dev"
-    state: "present"
-  when: ansible_os_family == 'Debian'
+- name: "Load OS-specific vars"
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: ["always"]
 
-- name: "Ensure rabbitmq-server and erlang are installed (Ubuntu)"
-  apt:
-    name:
-      - rabbitmq-server
-      - erlang
-    state: "present"
-  when: ansible_os_family == 'Debian'
+- name: "Ensure aipscan_secret_key is provided"
+  ansible.builtin.assert:
+    that:
+      - aipscan_secret_key | default("") | trim | length > 0
+    fail_msg: "Set aipscan_secret_key to a non-empty Flask SECRET_KEY before running this role."
+  tags: ["always"]
 
-- name: "Ensure python3-passlib is installed"
-  package:
-    name: "python3-passlib"
-    state: "present"
+- name: "Ensure storage service definitions are complete"
+  ansible.builtin.assert:
+    that:
+      - item.name | default("") | trim | length > 0
+      - item.url | default("") | trim | length > 0
+      - item.username | default("") | trim | length > 0
+      - item.api_key | default("") | trim | length > 0
+    fail_msg: "Each storage source must define non-empty name, url, username, and api_key attributes."
+  loop: "{{ aipscan_storage_sources }}"
+  loop_control:
+    label: "{{ item.name | default('storage source') }}"
+  when: aipscan_storage_sources | length > 0
+  tags: ["always"]
 
-- name: "Get git config global safe directories dir"
-  shell: "git config --global --get-all safe.directory || echo ''"
-  register: "__git_config_global_safe_dir"
+- name: "Set facts"
+  ansible.builtin.set_fact:
+    sqlalchemy_database_uri: >-
+      {%- set port = aipscan_db_port | default('', true) | string | trim -%}
+      {%- set host = aipscan_db_host | default('', true) | string | trim -%}
+      {%- set username = (aipscan_db_username | default('', true) | string | trim) | urlencode -%}
+      {%- set password = (aipscan_db_password | default('', true) | string | trim) | urlencode -%}
+      {%- set database = (aipscan_db_name | default('', true) | string | trim) | urlencode -%}
+      mysql+pymysql://{{ username }}:{{ password }}@{{ host }}{{ ':' + port if port else '' }}/{{ database }}
+    celery_result_backend: >-
+      {%- set port = aipscan_celery_db_port | default('', true) | string | trim -%}
+      {%- set host = aipscan_celery_db_host | default('', true) | string | trim -%}
+      {%- set username = (aipscan_celery_db_username | default('', true) | string | trim) | urlencode -%}
+      {%- set password = (aipscan_celery_db_password | default('', true) | string | trim) | urlencode -%}
+      {%- set database = (aipscan_celery_db_name | default('', true) | string | trim) | urlencode -%}
+      db+mysql+pymysql://{{ username }}:{{ password }}@{{ host }}{{ ':' + port if port else '' }}/{{ database }}
+  tags: ["always"]
 
-- name: "Set site directory as git safe dir"
-  command: "git config --global --add safe.directory {{ aipscan_install_dir | trim | regex_replace('\\/$', '') }}"
-  when:
-    -  aipscan_install_dir | trim() | regex_replace('\\/$', '') not in __git_config_global_safe_dir
+- name: "Set CLI environment facts"
+  ansible.builtin.set_fact:
+    aipscan_cli_env:
+      SQLALCHEMY_DATABASE_URI: "{{ sqlalchemy_database_uri }}"
+      FLASK_APP: "{{ flask_app }}"
+      SECRET_KEY: "{{ aipscan_secret_key }}"
+  tags: ["always"]
 
-- name: "Download code"
-  git:
-    repo: "https://github.com/artefactual-labs/AIPscan"
-    dest: "{{ aipscan_install_dir }}"
-    version: "{{ aipscan_branch }}"
+- name: "Resolve component versions"
+  versions: {}
+  tags: ["always", "versions"]
 
-- name: "Update permissions for downloaded code"
-  file:
-    dest: "{{ aipscan_install_dir }}"
-    owner: "{{ aipscan_user }}"
-    group: "{{ aipscan_group }}"
-    recurse: "yes"
+- name: "Install uv"
+  ansible.builtin.import_tasks: "uv.yml"
+  tags: ["uv"]
 
-- name: "Install pip dependencies in virtualenv"
-  pip:
-    chdir: "{{ aipscan_install_dir }}"
-    requirements: "requirements.txt"
-    virtualenv: "{{ aipscan_virtualenv }}"
-    virtualenv_command: /usr/bin/python3 -m venv
-    state: "latest"
+- name: "Install AIPscan"
+  ansible.builtin.import_tasks: "install.yml"
+  tags: ["install"]
 
-- name: "Template systemd files"
-  template: 
-    src: "systemd/{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
-  with_items:
-    - celery.service
-    - AIPscan.service
+- name: "Run database migrations"
+  ansible.builtin.command:
+    argv: ["{{ aipscan_virtualenv }}/bin/flask", "db", "upgrade"]
+  environment: "{{ aipscan_cli_env }}"
+  changed_when: false
+  tags: ["database"]
 
-- name: "Enable services"
-  systemd:
-    name: "{{ item }}"
-    state: "restarted"
-    enabled: "yes"
-    daemon_reload: "yes"
-  with_items:
-    - "celery"
-    - "AIPscan"
+- name: "Seed storage services"
+  ansible.builtin.command:
+    argv:
+      - "{{ aipscan_virtualenv }}/bin/flask"
+      - "--app"
+      - "{{ flask_app }}"
+      - "storage-service-bootstrap"
+      - "--name"
+      - "{{ item.name }}"
+      - "--url"
+      - "{{ item.url }}"
+      - "--username"
+      - "{{ item.username }}"
+      - "--api-key"
+      - "{{ item.api_key }}"
+      - "--default"
+      - "--wait"
+  environment: "{{ aipscan_cli_env }}"
+  loop: "{{ aipscan_storage_sources }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: aipscan_storage_sources | length > 0
+  changed_when: false
+  tags: ["database"]
+
+- name: "Configure and start services"
+  ansible.builtin.import_tasks: "service.yml"
+  tags: ["service"]

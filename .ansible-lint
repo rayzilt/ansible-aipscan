@@ -1,0 +1,6 @@
+skip_list:
+  - "yaml"
+mock_roles:
+  - geerlingguy.mysql
+  - geerlingguy.rabbitmq
+  - artefactual.nginx

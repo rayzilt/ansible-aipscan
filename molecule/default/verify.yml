@@ -1,0 +1,75 @@
+---
+- name: Verify deployment
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Determine environment file path (aipscan_environment)
+      vars:
+        candidate_env_files:
+          - /etc/sysconfig/aipscan
+          - /etc/default/aipscan
+      block:
+        - name: Check candidate environment files
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          loop: "{{ candidate_env_files }}"
+          register: aipscan_env_candidates
+        - name: Pick environment file
+          ansible.builtin.set_fact:
+            aipscan_environment: "{{ item.item }}"
+          loop: "{{ aipscan_env_candidates.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+          when: item.stat.exists and (aipscan_environment is not defined)
+        - name: Ensure environment file exists
+          ansible.builtin.fail:
+            msg: "No environment file found at {{ candidate_env_files | join(' or ') }}"
+          when: aipscan_environment is not defined
+
+    - name: Confirm that AIPscan services are running and enabled
+      block:
+        - name: Get service facts
+          ansible.builtin.service_facts: {}
+        - name: Assert aipscan services are running and enabled
+          ansible.builtin.assert:
+            that:
+              - ansible_facts.services['aipscan.service'].state == 'running'
+              - ansible_facts.services['aipscan.service'].status == 'enabled'
+              - ansible_facts.services['aipscan-worker.service'].state == 'running'
+              - ansible_facts.services['aipscan-worker.service'].status == 'enabled'
+
+    - name: Confirm that AIPscan is accessible over Nginx
+      block:
+        - name: Check favicon over Nginx
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:8057/static/favicon.ico"
+            status_code: 200
+            return_content: false
+          register: favicon_response
+        - name: Assert favicon content type
+          ansible.builtin.assert:
+            that: favicon_response.content_type == 'image/x-icon'
+        - name: Check storage_services endpoint
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:8057/aggregator/storage_services"
+            status_code: 200
+            return_content: true
+          register: storage_response
+        - name: Assert storage_services content type
+          ansible.builtin.assert:
+            that: storage_response.content_type == 'text/html; charset=utf-8'
+        - name: Assert storage service is listed
+          ansible.builtin.assert:
+            that: |
+              "Demo Storage Service" in storage_response.content
+
+    - name: Confirm that custom environment variables are set
+      block:
+        - name: Read environment file
+          ansible.builtin.slurp:
+            src: "{{ aipscan_environment }}"
+          register: aipscan_env_content
+        - name: Assert custom environment is present
+          ansible.builtin.assert:
+            that: |
+              "AIPSCAN_TEST_VAR=molecule-test-value" in (aipscan_env_content.content | b64decode | string)

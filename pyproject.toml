@@ -1,0 +1,23 @@
+[project]
+name = "ansible-aipscan"
+version = "0.1.0"
+description = "Ansible role for AIPscan"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ansible>=8.3.0",
+    "ansible-core>=2.15.5",
+    "ansible-lint>=6.8.7",
+    "molecule>=25.1.0",
+    "molecule-plugins[docker]>=25.8.12",
+    "pytest>=8.4.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+filterwarnings = [
+    "ignore:'importlib.abc.TraversableResources' is deprecated:DeprecationWarning:ansible.utils.collection_loader._collection_finder"
+]

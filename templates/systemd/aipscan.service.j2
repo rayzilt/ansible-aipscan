@@ -6,9 +6,7 @@ After=network.target
 User={{ aipscan_user }}
 Group={{ aipscan_group }}
 WorkingDirectory={{ aipscan_install_dir }}
-{% if  aipscan_db_user is defined %}
-Environment="SQLALCHEMY_DATABASE_URI=mysql+pymysql://{{ aipscan_db_user }}:{{ aipscan_db_pass }}@{{ aipscan_db_host }}/{{ aipscan_db_name }}"
-{% endif %}
+EnvironmentFile=-{{ aipscan_environment }}
 ExecStart={{ aipscan_virtualenv }}/bin/gunicorn --workers 3 --bind localhost:4573 "AIPscan:create_app()"
 Restart=always
 

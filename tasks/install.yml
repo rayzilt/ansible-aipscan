@@ -1,0 +1,66 @@
+---
+- name: "Ensure virtualenv parent directory exists"
+  ansible.builtin.file:
+    path: "{{ aipscan_virtualenv | dirname }}"
+    state: directory
+    owner: "{{ aipscan_user }}"
+    group: "{{ aipscan_group }}"
+    mode: "0755"
+
+- name: "Create virtualenv with uv"
+  ansible.builtin.command:
+    argv:
+      - "{{ uv_executable_path }}"
+      - "venv"
+      - "--no-project"
+      - "--managed-python"
+      - "--python={{ aipscan_python_version }}"
+      - "--clear"
+      - "{{ aipscan_virtualenv }}"
+    creates: "{{ aipscan_virtualenv }}/bin/python"
+  become: true
+  become_user: "{{ aipscan_user }}"
+
+- name: "Install AIPscan in the virtualenv"
+  ansible.builtin.command:
+    argv:
+      - "{{ uv_executable_path }}"
+      - "pip"
+      - "install"
+      - "--python={{ aipscan_virtualenv }}/bin/python"
+      - "aipscan[server]=={{ aipscan_version }}"
+  register: aipscan_install_result
+  changed_when: "'Successfully installed' in aipscan_install_result.stdout"
+  become: true
+  become_user: "{{ aipscan_user }}"
+
+- name: "Ensure AIPscan install and downloads directories exist"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ aipscan_user }}"
+    group: "{{ aipscan_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ aipscan_install_dir }}", mode: "0755" }
+    - { path: "{{ aipscan_install_dir }}/downloads", mode: "0750" }
+
+- name: "Discover AIPscan static asset path"
+  ansible.builtin.command:
+    argv:
+      - "{{ aipscan_virtualenv }}/bin/python"
+      - "-c"
+      - "import pathlib, AIPscan; print(pathlib.Path(AIPscan.__file__).parent / 'static')"
+  register: aipscan_static_lookup
+  changed_when: false
+  become: true
+  become_user: "{{ aipscan_user }}"
+
+- name: "Symlink static assets into install dir"
+  ansible.builtin.file:
+    src: "{{ aipscan_static_lookup.stdout | trim }}"
+    dest: "{{ aipscan_install_dir }}/static"
+    state: link
+    force: true
+  become: true
+  become_user: "{{ aipscan_user }}"

@@ -1,0 +1,14 @@
+---
+- name: "Reload systemd"
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: "Restart AIPscan services"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - "aipscan"
+    - "aipscan-worker"
+  loop_control:
+    label: "{{ item }}"

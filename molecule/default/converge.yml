@@ -1,0 +1,95 @@
+---
+- name: Converge | Prepare the environment
+  hosts: all
+  become: true
+  become_method: ansible.builtin.su
+  tasks:
+    - name: Ensure deps for apt_repository and refresh cache
+      become: true
+      when: ansible_facts.os_family == 'Debian'
+      ansible.builtin.apt:
+        name:
+          - python3-debian
+          - gnupg
+          - ca-certificates
+        state: present
+        update_cache: true
+        cache_valid_time: 600
+      changed_when: false
+    - name: Ensure archivematica group exists
+      ansible.builtin.group:
+        name: "archivematica"
+        system: true
+    - name: Ensure archivematica user exists
+      ansible.builtin.user:
+        name: "archivematica"
+        group: "archivematica"
+        system: true
+        create_home: true
+
+- name: Converge | Install MySQL, Nginx and RabbitMQ
+  hosts: all
+  become: true
+  become_method: ansible.builtin.su
+  roles:
+    - role: geerlingguy.mysql
+      tags: ["mysql"]
+      vars:
+        mysql_root_password: "Aej9okH.1hoD7laJc"
+        mysql_databases:
+          - name: "aipscan"
+            encoding: "utf8mb4"
+            collation: "utf8mb4_unicode_ci"
+          - name: "celery"
+            encoding: "utf8mb4"
+            collation: "utf8mb4_unicode_ci"
+        mysql_users:
+          - name: "aipscan"
+            password: "aipscan"
+            host: "localhost"
+            priv: "aipscan.*:ALL,GRANT"
+          - name: "celery"
+            password: "celery"
+            host: "localhost"
+            priv: "celery.*:ALL,GRANT"
+    - role: artefactual.nginx
+      tags: ["nginx"]
+      vars:
+        nginx_sites:
+          aipscan:
+            - listen 8057
+            - location /static/ {
+              alias /usr/share/archivematica/AIPscan/static/;
+              add_header Cache-Control "public, max-age=86400";
+              access_log off;
+              try_files $uri $uri/ =404;
+              }
+            - location / {
+              proxy_pass http://127.0.0.1:4573;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $http_host;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+    - role: geerlingguy.rabbitmq
+      tags: ["rabbitmq", "molecule-idempotence-notest"]
+      vars:
+        rabbitmq_version: "4.1.3"
+
+- name: Converge | Install AIPscan
+  hosts: all
+  become: true
+  become_method: ansible.builtin.su
+  roles:
+    - role: artefactual.aipscan
+      tags: ["aipscan"]
+      vars:
+        aipscan_secret_key: "ea83b0fdfbf98803814f2e587a648afa3069941a7d89ec163797c30c29cd4910"
+        aipscan_extra_envs:
+          AIPSCAN_TEST_VAR: "molecule-test-value"
+        aipscan_storage_sources:
+          - name: "Demo Storage Service"
+            url: "http://127.0.0.1:8000"
+            username: "demo"
+            api_key: "demo"

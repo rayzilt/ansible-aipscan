@@ -1,0 +1,135 @@
+- name: "Resolve uv release metadata"
+  ansible.builtin.set_fact:
+    uv_release_filename: "{{ uv_architecture_map.get(ansible_architecture) }}"
+    uv_executable_path: "{{ aipscan_uv_install_dir }}/uv"
+  vars:
+    uv_architecture_map:
+      x86_64: "uv-x86_64-unknown-linux-gnu.tar.gz"
+      amd64: "uv-x86_64-unknown-linux-gnu.tar.gz"
+      aarch64: "uv-aarch64-unknown-linux-gnu.tar.gz"
+      arm64: "uv-aarch64-unknown-linux-gnu.tar.gz"
+
+- name: "Fail when uv architecture is unsupported"
+  ansible.builtin.fail:
+    msg: "Unsupported architecture {{ ansible_architecture }}. Supported options are x86_64/amd64 and aarch64/arm64."
+  when: uv_release_filename is none
+
+- name: "Check for existing uv binary"
+  ansible.builtin.stat:
+    path: "{{ uv_executable_path }}"
+  register: uv_binary
+
+- name: "Detect installed uv version"
+  ansible.builtin.command:
+    argv:
+      - "{{ uv_executable_path }}"
+      - "--version"
+  register: uv_version
+  changed_when: false
+  failed_when: false
+  when: uv_binary.stat.exists
+
+- name: "Determine whether uv installation is required"
+  ansible.builtin.set_fact:
+    uv_install_required: "{{ (not uv_binary.stat.exists) or (aipscan_uv_version not in (uv_version.stdout | default(''))) }}"
+
+- name: "Ensure uv install directory exists"
+  ansible.builtin.file:
+    path: "{{ aipscan_uv_install_dir }}"
+    state: directory
+    mode: "0755"
+  when: uv_install_required
+
+- name: "Create temporary directory for uv download"
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: "-uv-download"
+  register: uv_tempdir
+  when: uv_install_required
+
+- name: "Set uv download variables"
+  ansible.builtin.set_fact:
+    uv_tempdir_path: "{{ uv_tempdir.path | default(uv_tempdir.dest) }}"
+    uv_download_dir: "{{ uv_tempdir.path }}"
+    uv_archive_url: "https://github.com/astral-sh/uv/releases/download/{{ aipscan_uv_version }}/{{ uv_release_filename }}"
+    uv_checksum_url: "https://github.com/astral-sh/uv/releases/download/{{ aipscan_uv_version }}/{{ uv_release_filename }}.sha256"
+    uv_archive_path: "{{ uv_tempdir.path ~ '/' ~ uv_release_filename }}"
+    uv_checksum_path: "{{ uv_tempdir.path ~ '/' ~ uv_release_filename ~ '.sha256' }}"
+    uv_extracted_binary_path: "{{ uv_tempdir.path ~ '/' ~ (uv_release_filename | regex_replace('\\.tar\\.gz$', '')) ~ '/uv' }}"
+  when: uv_install_required
+
+- name: "Download uv checksum"
+  ansible.builtin.get_url:
+    url: "{{ uv_checksum_url }}"
+    dest: "{{ uv_checksum_path }}"
+    mode: "0644"
+    timeout: 30
+  register: uv_checksum_download
+  retries: 3
+  delay: 3
+  until: uv_checksum_download is succeeded
+  when: uv_install_required
+
+- name: "Read uv checksum file"
+  ansible.builtin.slurp:
+    src: "{{ uv_checksum_path }}"
+  register: uv_checksum_file
+  when: uv_install_required
+
+- name: "Record expected uv checksum"
+  ansible.builtin.set_fact:
+    uv_expected_checksum: "{{ (uv_checksum_file.content | b64decode).split()[0] }}"
+  when: uv_install_required
+
+- name: "Download uv archive"
+  ansible.builtin.get_url:
+    url: "{{ uv_archive_url }}"
+    dest: "{{ uv_archive_path }}"
+    mode: "0644"
+    checksum: "sha256:{{ uv_expected_checksum }}"
+    timeout: 30
+  register: uv_archive_download
+  retries: 3
+  delay: 3
+  until: uv_archive_download is succeeded
+  when: uv_install_required
+
+- name: "Extract uv archive"
+  ansible.builtin.unarchive:
+    src: "{{ uv_archive_path }}"
+    dest: "{{ uv_download_dir }}"
+    remote_src: true
+    mode: "0755"
+  when: uv_install_required
+
+- name: "Check extracted uv binary"
+  ansible.builtin.stat:
+    path: "{{ uv_extracted_binary_path }}"
+  register: uv_extracted_binary_stat
+  when: uv_install_required
+
+- name: "Ensure uv binary exists in archive"
+  ansible.builtin.assert:
+    that:
+      - uv_extracted_binary_stat.stat.exists
+    fail_msg: "The uv binary was not found at {{ uv_extracted_binary_path }}. The archive layout may have changed."
+  when: uv_install_required
+
+- name: "Install uv binary"
+  ansible.builtin.command:
+    argv:
+      - "install"
+      - "-m"
+      - "0755"
+      - "{{ uv_extracted_binary_path }}"
+      - "{{ uv_executable_path }}"
+  when: uv_install_required
+  changed_when: false
+
+- name: "Remove temporary uv download directory"
+  ansible.builtin.file:
+    path: "{{ uv_tempdir_path | default('') }}"
+    state: absent
+  when:
+    - uv_tempdir_path is defined
+    - uv_tempdir_path != ""

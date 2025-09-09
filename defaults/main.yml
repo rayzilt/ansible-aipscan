@@ -1,8 +1,64 @@
+# Target AIPscan version. Leave empty to automatically use the latest release
+# resolved from PyPI.
+aipscan_version: ""
+
+# Flask SECRET_KEY for AIPscan.
+# See https://flask.palletsprojects.com/en/stable/config/#SECRET_KEY for more.
+# Must not be empty or the deployment will fail.
+aipscan_secret_key: ""
+
+# Installation paths and user/group settings for AIPscan.
 aipscan_install_dir: "/usr/share/archivematica/AIPscan"
 aipscan_virtualenv: "/usr/share/archivematica/virtualenvs/AIPscan"
-aipscan_branch: "main"
 aipscan_user: "archivematica"
 aipscan_group: "archivematica"
-aipscan_listen_port: "8057"
-aipscan_http_user: "artefactual"
-aipscan_http_password: "aipscan"
+
+# Database connection settings for AIPscan.
+aipscan_db_host: "localhost"
+aipscan_db_name: "aipscan"
+aipscan_db_username: "aipscan"
+aipscan_db_password: "aipscan"
+aipscan_db_port: 3306
+
+# Database connection settings for Celery (results backend).
+aipscan_celery_db_host: "localhost"
+aipscan_celery_db_name: "celery"
+aipscan_celery_db_username: "celery"
+aipscan_celery_db_password: "celery"
+aipscan_celery_db_port: 3306
+
+# Celery broker URL.
+aipscan_celery_broker_url: "amqp://guest@localhost/"
+
+# Additional environment variables injected into the systemd EnvironmentFile.
+# Keys must be valid environment variable names, e.g.:
+#
+#   aipscan_extra_envs:
+#     REQUESTS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
+#     TYPESENSE_HOST: "localhost"
+#     TYPESENSE_PORT: "8108"
+#     TYPESENSE_API_KEY: "api-key"
+#
+# Note: Typesense support is only enabled by AIPscan when the API key is
+# populated like in the example above.
+aipscan_extra_envs: {}
+
+# Storage service definitions that will be seeded via the CLI.
+# Each mapping must define name, url, username, and api_key, e.g.:
+#
+#   aipscan_storage_sources:
+#     - name: "Demo Storage Service"
+#       url: "http://127.0.0.1:86021"
+#       username: "test"
+#       api_key: "test"
+#
+aipscan_storage_sources: []
+
+# uv installation settings. If aipscan_uv_version is empty, the latest
+# release will be used.
+aipscan_uv_install_dir: "/usr/local/bin"
+aipscan_uv_version: ""
+
+# Python version used for AIPscan virtualenv. If empty, the version will be
+# fetched from the .python-version file in the Git tag.
+aipscan_python_version: ""

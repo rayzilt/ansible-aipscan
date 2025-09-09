@@ -1,0 +1,10 @@
+SQLALCHEMY_DATABASE_URI={{ sqlalchemy_database_uri }}
+CELERY_RESULT_BACKEND={{ celery_result_backend }}
+CELERY_BROKER_URL={{ aipscan_celery_broker_url }}
+AGGREGATOR_DOWNLOAD_ROOT={{ aipscan_install_dir }}/downloads
+SECRET_KEY={{ aipscan_secret_key }}
+
+{% set extra_envs = aipscan_extra_envs | default({}, true) %}
+{% for env in extra_envs | dict2items | sort(attribute='key') %}
+{{ env.key }}={{ env.value | quote }}
+{% endfor %}

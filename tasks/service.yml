@@ -1,0 +1,34 @@
+---
+- name: "Template systemd files"
+  ansible.builtin.template:
+    src: "systemd/{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: "0644"
+  notify:
+    - "Reload systemd"
+    - "Restart AIPscan services"
+  with_items:
+    - aipscan-worker.service
+    - aipscan.service
+
+- name: "Template environment file"
+  ansible.builtin.template:
+    src: "aipscan_environment.j2"
+    dest: "{{ aipscan_environment }}"
+    mode: "0644"
+  notify:
+    - "Restart AIPscan services"
+
+- name: "Apply service configuration changes"
+  ansible.builtin.meta: "flush_handlers"
+
+- name: "Enable services"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    daemon_reload: true
+  with_items:
+    - "aipscan-worker"
+    - "aipscan"
+  loop_control:
+    label: "{{ item }}"
