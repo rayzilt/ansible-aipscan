@@ -18,7 +18,7 @@ includes inline comments for clarity and self-documentation.
 
 ## Dependencies
 
-AIPScan depends on **MySQL** and **RabbitMQ**. In most deployments, **Nginx** is
+AIPscan depends on **MySQL** and **RabbitMQ**. In most deployments, **Nginx** is
 used as a load balancer and to serve static files, while **Typesense** can
 optionally be deployed to improve reporting performance.
 
@@ -60,7 +60,7 @@ The role exposes the following tags to run a subset of tasks:
 This project is licensed under the Apache-2.0 license ([LICENSE] or
 <https://opensource.org/licenses/Apache-2.0>).
 
-[AIPscan]: https://github.com/artefactual-labs/AIPScan
+[AIPscan]: https://github.com/artefactual-labs/AIPscan
 [legacy-0.7]: https://github.com/artefactual-labs/ansible-aipscan/releases/tag/legacy-0.7
 [sqlite-migration]: https://github.com/artefactual-labs/AIPscan/tree/v0.8.0-beta?tab=readme-ov-file#production-deployments
 [LICENSE]: ./LICENSE
