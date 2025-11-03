@@ -8,7 +8,7 @@
     name: "{{ item }}"
     state: restarted
   loop:
-    - "aipscan"
-    - "aipscan-worker"
+    - "{{ aipscan_gunicorn_systemd_unit_name }}"
+    - "{{ aipscan_celery_systemd_unit_name }}"
   loop_control:
     label: "{{ item }}"

@@ -62,3 +62,7 @@ aipscan_uv_version: ""
 # Python version used for AIPscan virtualenv. If empty, the version will be
 # fetched from the .python-version file in the Git tag.
 aipscan_python_version: ""
+
+# Exposed mostly for backward compatibility; prefer keeping the defaults.
+aipscan_gunicorn_systemd_unit_name: "aipscan"
+aipscan_celery_systemd_unit_name: "aipscan-worker"

@@ -1,15 +1,19 @@
 ---
 - name: "Template systemd files"
   ansible.builtin.template:
-    src: "systemd/{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
+    src: "systemd/{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.unit }}.service"
     mode: "0644"
   notify:
     - "Reload systemd"
     - "Restart AIPscan services"
-  with_items:
-    - aipscan-worker.service
-    - aipscan.service
+  loop:
+    - src: "aipscan-worker.service.j2"
+      unit: "{{ aipscan_celery_systemd_unit_name }}"
+    - src: "aipscan.service.j2"
+      unit: "{{ aipscan_gunicorn_systemd_unit_name }}"
+  loop_control:
+    label: "{{ item.unit }}"
 
 - name: "Template environment file"
   ansible.builtin.template:
@@ -27,8 +31,8 @@
     name: "{{ item }}"
     enabled: true
     daemon_reload: true
-  with_items:
-    - "aipscan-worker"
-    - "aipscan"
+  loop:
+    - "{{ aipscan_celery_systemd_unit_name }}"
+    - "{{ aipscan_gunicorn_systemd_unit_name }}"
   loop_control:
     label: "{{ item }}"
