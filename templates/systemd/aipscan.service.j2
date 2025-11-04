@@ -7,7 +7,7 @@ User={{ aipscan_user }}
 Group={{ aipscan_group }}
 WorkingDirectory={{ aipscan_install_dir }}
 EnvironmentFile=-{{ aipscan_environment }}
-ExecStart={{ aipscan_virtualenv }}/bin/gunicorn --workers 3 --bind localhost:4573 "AIPscan:create_app()"
+ExecStart={{ aipscan_virtualenv }}/bin/gunicorn --workers 3 --bind {{ aipscan_bind_host }}:{{ aipscan_bind_port }} "AIPscan:create_app()"
 Restart=always
 
 [Install]

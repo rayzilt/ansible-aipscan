@@ -13,6 +13,10 @@ aipscan_virtualenv: "/usr/share/archivematica/virtualenvs/AIPscan"
 aipscan_user: "archivematica"
 aipscan_group: "archivematica"
 
+# Gunicorn bind settings for the AIPscan web service.
+aipscan_bind_host: "localhost"
+aipscan_bind_port: 4573
+
 # Database connection settings for AIPscan.
 aipscan_db_host: "localhost"
 aipscan_db_name: "aipscan"

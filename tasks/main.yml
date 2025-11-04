@@ -93,6 +93,9 @@
   changed_when: false
   tags: ["database"]
 
+- name: "Apply SELinux adjustments"
+  ansible.builtin.import_tasks: "selinux.yml"
+
 - name: "Configure and start services"
   ansible.builtin.import_tasks: "service.yml"
   tags: ["service"]

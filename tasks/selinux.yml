@@ -1,0 +1,24 @@
+- name: "Configure SELinux context and ports for AIPscan"
+  when:
+    - ansible_selinux is defined
+    - (ansible_selinux.status | default('disabled')) | lower == "enabled"
+  block:
+    - name: "Ensure SELinux management tooling is installed"
+      ansible.builtin.package:
+        name: "policycoreutils-python-utils"
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: "Label AIPscan directory tree for writes"
+      community.general.sefcontext:
+        target: "{{ aipscan_install_dir }}(/.*)?"
+        setype: var_lib_t
+        state: present
+      notify: "Restore SELinux labels"
+
+    - name: "Expose Gunicorn port via http_port_t"
+      community.general.seport:
+        state: present
+        proto: tcp
+        ports: "{{ aipscan_bind_port | int }}"
+        setype: http_port_t

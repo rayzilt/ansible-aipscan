@@ -3,6 +3,17 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+- name: "Restore SELinux labels"
+  ansible.builtin.command:
+    argv:
+      - "restorecon"
+      - "-Rv"
+      - "{{ aipscan_install_dir }}"
+  register: restorecon_result
+  changed_when: >
+    restorecon_result.stdout is defined
+    and (restorecon_result.stdout | trim | length) > 0
+
 - name: "Restart AIPscan services"
   ansible.builtin.systemd:
     name: "{{ item }}"
