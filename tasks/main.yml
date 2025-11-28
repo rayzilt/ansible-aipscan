@@ -61,6 +61,16 @@
   ansible.builtin.import_tasks: "install.yml"
   tags: ["install"]
 
+- name: 'Debug'
+  ansible.builtin.debug:
+    msg: "Username={{ aipscan_db_username }}, Password={{ aipscan_db_password }}"
+
+- name: 'Debug'
+  ansible.builtin.debug:
+    msg:
+      - "SQLALCHEMY_DATABASE_URI={{ sqlalchemy_database_uri }}"
+      - "CELERY_RESULT_BACKEND={{ celery_result_backend }}"
+
 - name: "Run database migrations"
   ansible.builtin.command:
     argv: ["{{ aipscan_virtualenv }}/bin/flask", "db", "upgrade"]
